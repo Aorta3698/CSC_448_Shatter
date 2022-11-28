@@ -15,6 +15,7 @@ To Build the executable, enter "make" in the command prompt.
 For example:
 
 endof@DESKTOP-3LG4RQH MINGW64 /C/Users/endof/Documents/Cal Poly HomeWork/CSC 448/Project
+
 $ make
 
 
@@ -22,5 +23,6 @@ _______________________________________________________
 To use the executable, enter "match" for more instruction. For example:
 
 endof@DESKTOP-3LG4RQH MINGW64 /C/Users/endof/Documents/Cal Poly HomeWork/CSC 448/Project/matching
+
 $ ./match
 

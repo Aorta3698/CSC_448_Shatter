@@ -1,4 +1,4 @@
-Written by Ash on 11/20/2022. 
+Written by Ash on 11/20/2022.
 
 _______________________________________________________
 Please make sure that your g++ version is up to date.
@@ -11,7 +11,7 @@ PS C:\Users\endof\Documents\Cal Poly HomeWork\CSC 448\Project> g++ --version
 > g++.exe (MinGW-W64 x86_64-posix-seh, built by Brecht Sanders) 11.2.0
 
 _______________________________________________________
-To Build the executable on *Linux* or *MacOS*, enter "make" in the command prompt. 
+To Build the executable on *Linux*, enter "make" in the command prompt.
 For example:
 
 endof@DESKTOP-3LG4RQH MINGW64 /C/Users/endof/Documents/Cal Poly HomeWork/CSC 448/Project
@@ -22,6 +22,9 @@ To Build the executable on *Windows*, enter the following command into cmd (**no
 
 > g++ -Wall -Wextra -Wconversion -static -DONLINE_JUDGE -Wl,--stack=268435456 -O2 -std=c++20 -o match match.cpp
 
+To Build the executable on *MacOS*, enter the following command into Terminal
+
+> g++-12 -Wall -Wextra -Wconversion -O2 -std=c++20 -o match match.cpp
 
 _______________________________________________________
 To use the executable, enter "match" for more instruction. For example:

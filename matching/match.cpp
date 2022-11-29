@@ -3,10 +3,14 @@
 #include <fstream>
 #include <algorithm>
 #include <cstring>
+#include <chrono>
 
 // print usage
 void usage(){
     std::cout << "USAGE: match <genome-file> <fragments-file> <output-file>\n"
+              << "It finds the longest common substring for each fragment in <fragments-file> with all the chronosomes in <genome-file>\n"
+              << "the input file should not have letters other than 'A', 'T', 'C', 'G', 'N', 'W'.\n"
+              << "The maximum length for each chronosome (header) is 25,000,000. It will crash with an error message if it goes over that\n"
               << "\n"
               << "All 3 files are required.\n"
               << "\n"
@@ -21,17 +25,36 @@ void usage(){
 }
 
 /**
+ * Error out if somehow there is a letter other than "ATCGNW"
+ */
+void error(char ch){
+    std::cout << "got '" << ch << "', which is not supported (ATCGNW)" << '\n';
+    std::cout << "Exiting" << '\n';
+    exit(-1);
+}
+
+/**
+ * global variables (for the sake of speed & simplicity)
+ */
+int idx[128];
+std::vector<std::pair<int, std::string>> ans;
+
+/**
  * Suffix Automaton Section
  * This runs in linear time O(N)
  */
-constexpr static int maxn = 3e7; // Maximum amount of states
-int to[maxn][5];           // Transitions
+constexpr static int maxn = 5e7; // Maximum amount of states
+int to[maxn][6];           // Transitions
 int link[maxn];            // Suffix links
 int len[maxn];             // Lengthes of largest strings in states
 int last = 0;              // State corresponding to the whole string
 int sz = 1;                // Current amount of states
 
 void addLetter (int c){   // Adding character to the end
+    if (sz == maxn){
+        std::cout << "Sorry - too many characters in one header leading to its crash.\n";
+        exit(-1);
+    }
     int p = last;          // State of string s
     last = sz++;           // Create state for string sc
     len[last] = len[p] + 1;
@@ -68,7 +91,59 @@ std::string str_toupper(std::string s) {
     return s;
 }
 
-int main(int argc, char *argv[]){
+
+/**
+ * Use suffix automaton to find the best match for the current chronosome (header)
+ * input : fragment file
+ * output: the best match for each fragment
+ */
+void solve(std::ifstream& frag){
+    std::string line;
+    int count = 0;
+
+    // find the longest match for each fragment
+    while(std::getline(frag, line)){ // fragments should be all upper case now
+        auto comma = line.find(",");
+        int index = std::stoi(line.substr(0, comma));
+        line = line.substr(comma + 1);
+
+        int cur = 0, l = 0, end = 0, maxLen = 0;
+        for (int i = 0; i < int(line.size()); ++i){
+            int a = int(line[i]);
+            if (idx[a] == -1){
+                std::cout << "[fragment file]\n"
+                          << "Line: " << count << " with an index of " << index << " with line\n"
+                          << line << '\n';
+                error(line[i]);
+            }
+            int k = idx[a];
+            while(cur && to[cur][k] == 0){
+                cur = link[cur];
+                l = len[cur];
+            }
+            if (to[cur][k]){
+                cur = to[cur][k];
+                if (++l > maxLen){
+                    end = i;
+                    maxLen = l;
+                }
+            }
+        }
+
+        // add to answer if better
+        const auto& [_, match] = ans[count];
+        if (maxLen > int(match.size())){
+            ans[count] = {index, line.substr(end - maxLen + 1, maxLen)};
+        }
+        ++count;
+    }
+
+    // rewind
+    frag.clear();
+    frag.seekg(0);
+};
+
+int main(int argc, char* argv[]){
     // handle command line input
     if (argc != 4){
         usage();
@@ -98,53 +173,66 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
-    // build the suffix automaton
-    int idx[128];
+    // give each letter its own index. The input files should not have letters other than ATCGNW
+    memset(idx, -1, sizeof(idx));
     idx['A'] = 0;
     idx['T'] = 1;
     idx['C'] = 2;
     idx['G'] = 3;
-    idx['>'] = 4;
+    idx['N'] = 4;
+    idx['W'] = 5;
+
+    // count how many fragments are there
     std::string line;
+    int count = 0;
+    while(std::getline(frag, line)){
+        ++count;
+    }
+    frag.clear();
+    frag.seekg(0);
+    ans = std::vector<std::pair<int, std::string>>(count);
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    // build the suffix automaton and solve for each header
+    std::getline(ref, line); // skip the first header line
     while(std::getline(ref, line)){
         if (line[0] == '>'){ // header
-            line = ">";
+            solve(frag);
+            std::cout << "one lap finished... \n";
+            for (int i = 0; i < sz; ++i){
+                memset(to[i], 0, sizeof(to[i]));
+            }
+            memset(link, 0, sz * sizeof(int));
+            memset(len,  0, sz * sizeof(int));
+            last = 0;
+            sz = 1;
+            continue;
         }
         for (unsigned char ch : str_toupper(line)){
+            if (idx[ch] == -1){
+                std::cout << "[genome file]\n"
+                          << "Line: \n"
+                          << line << '\n';
+                error(ch);
+            }
             addLetter(idx[ch]);
         }
     }
-    ref.close();
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "Done! now outputting the answer to " << output_file << '\n';
+    std::cout << "Total time taken = " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << '\n';
 
-    // find the longest match for each fragment
-    while(std::getline(frag, line)){ // fragments should be all upper case now
-        auto comma = line.find(",");
-        int index = std::stoi(line.substr(0, comma));
-        line = line.substr(comma + 1);
-
-        int cur = 0, l = 0, end = 0, maxLen = 0;
-        for (int i = 0; i < int(line.size()); ++i){
-            int k = idx[int(line[i])];
-            while(cur && to[cur][k] == 0){
-                cur = link[cur];
-                l = len[cur];
-            }
-            if (to[cur][k]){
-                cur = to[cur][k];
-                if (++l > maxLen){
-                    end = i;
-                    maxLen = l;
-                }
-            }
-        }
-
-        // print out the longest common substring
-        outfile << index << "," << line.substr(end-maxLen+1, maxLen) << '\n';
+    // output the answer
+    for (const auto& each : ans){
+        const auto& [index, match] = each;
+        outfile << index << "," << match << '\n';
     }
 
+    // close all the files
+    ref.close();
     frag.close();
     outfile.close();
-};
+}
 
 
 

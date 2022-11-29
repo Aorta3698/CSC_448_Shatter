@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <chrono>
+#include <vector>
 
 // print usage
 void usage(){

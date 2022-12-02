@@ -23,9 +23,13 @@ void usage(){
     for (const auto& [enzyme, _] : enzymes){
         all_enzyme.push_back(enzyme);
     }
+    std::cout << "\nCharacter | marks the cut position\n\n";
     std::ranges::sort(all_enzyme);
     for (const auto& enzyme : all_enzyme){
-        std::cout << "- " << enzyme << '\n';
+        const auto& [gene, offset] = enzymes[enzyme];
+        std::string vis = gene;
+        vis.insert(offset, "|");
+        std::printf("%-10s%s\n", enzyme.c_str(), vis.c_str());
     }
 
     std::cout << "\n"

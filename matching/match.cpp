@@ -92,7 +92,6 @@ std::string str_toupper(std::string s) {
     return s;
 }
 
-
 /**
  * Use suffix automaton to find the best match for the current chronosome (header)
  * input : fragment file
